@@ -73,7 +73,7 @@ public class ObtemArquivos
         return trackAuthorization;
     }
 
-    public string ObtemUrlDaMusica(string paginaPrincipal, string trackAuthorization, string clientId)
+    public string ObtemUrlProgressiveDaMusica(string paginaPrincipal, string trackAuthorization, string clientId)
     {
         var urlBytesInicio = paginaPrincipal.IndexOf(",{\"url\":\"");
         var urlBytesFim = paginaPrincipal.IndexOf("e\",\"preset\"");
@@ -81,7 +81,47 @@ public class ObtemArquivos
         return $"{urlBytes}e?client_id={clientId}&track_authorization={trackAuthorization}";
     }
 
-    public async Task<List<string>?> ObtemListaDeArquivosDeAudio(HttpClient httpClient, string url, string caminhoBase)
+    public string ObtemUrlHLSDaMusica(string paginaPrincipal, string trackAuthorization, string clientId)
+    {
+      var urlBytesInicio = paginaPrincipal.IndexOf("\"transcodings\":[{\"url\":\"");
+      var urlBytesFim = paginaPrincipal.IndexOf("s\",\"preset");
+
+      var teste = paginaPrincipal.Substring(urlBytesInicio, urlBytesFim - urlBytesInicio);
+      var urlBytes = paginaPrincipal.Substring(urlBytesInicio, urlBytesFim - urlBytesInicio).Replace("\"transcodings\":[{\"url\":\"", "");
+      return $"{urlBytes}s?client_id={clientId}&track_authorization={trackAuthorization}";
+    }
+
+    public async Task<List<string>> ObtemListaDeLinkDosTrechos(HttpClient httpClient, string url)
+    {
+      var response = await httpClient.GetStringAsync(url);
+      var linkPlaylist = response.Replace("{\"url\":\"", "").Replace("\"}", "");
+      response = await httpClient.GetStringAsync(linkPlaylist);
+
+      var trechos = EditaArquivos.ExtrairLinksDosTrechos(response).ToList();
+      return trechos;
+    }
+
+    public async Task<byte[]> ObtemMusicaCompletaHLSAudio(HttpClient httpClient, List<string> trechos)
+    {
+      using (var f = new MemoryStream())
+      {
+        foreach (var link in trechos)
+        {
+          if (link == string.Empty) continue;
+          var response = await httpClient.GetAsync(link);
+          if(!response.IsSuccessStatusCode) continue;
+
+          var stream = await response.Content.ReadAsStreamAsync();
+
+          stream.Position = 0;
+          stream.CopyToAsync(f);  
+        }
+
+        return f.ToArray();
+      }
+    }
+
+  public async Task<List<string>?> ObtemListaDeArquivosDeAudio(HttpClient httpClient, string url, string caminhoBase)
     {
         var response = await httpClient.GetAsync(url);
 

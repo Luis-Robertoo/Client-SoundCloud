@@ -8,7 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Playlists\Teste1\" />
+    <Compile Remove="Playlists\**" />
+    <EmbeddedResource Remove="Playlists\**" />
+    <None Remove="Playlists\**" />
   </ItemGroup>
 
   <ItemGroup>
